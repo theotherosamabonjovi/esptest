@@ -4,260 +4,219 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
 <title>Simple Telepathy Test</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 :root {
-  --bg: #f7f8fa;
-  --card: #ffffff;
-  --text: #1a1a2e;
-  --muted: #8a8fa8;
-  --border: #e4e6f0;
-  --accent: #5b5ef4;
-  --accent-light: #ededfd;
-  --green: #22c97a;
-  --radius: 16px;
-  --shadow: 0 2px 16px rgba(0,0,0,0.07);
+  --bg:#f7f8fa; --card:#fff; --text:#1a1a2e; --muted:#8a8fa8;
+  --border:#e4e6f0; --accent:#5b5ef4; --accent-light:#ededfd;
+  --green:#22c97a; --red:#f04040; --radius:16px;
+  --shadow:0 2px 16px rgba(0,0,0,0.07);
 }
 html,body { height:100%; background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:var(--text); overflow:hidden; }
-#app { width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+#app { width:100%; height:100%; display:flex; flex-direction:column; }
 
 /* NAV */
 .nav {
-  padding: 14px 20px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  padding:14px 20px 12px; display:flex; align-items:center; justify-content:space-between;
+  background:var(--card); border-bottom:1px solid var(--border); flex-shrink:0;
 }
-.nav-logo { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
-.nav-logo span { color: var(--accent); }
+.nav-logo { font-size:15px; font-weight:700; }
+.nav-logo span { color:var(--accent); }
+.nav-right { display:flex; align-items:center; gap:10px; }
+.conn-pill {
+  font-size:11px; font-weight:600; padding:4px 10px; border-radius:100px;
+  display:flex; align-items:center; gap:5px; letter-spacing:.3px;
+}
+.conn-pill.offline { background:#f3f3f3; color:var(--muted); }
+.conn-pill.waiting { background:#fff8e1; color:#b36b00; }
+.conn-pill.connected { background:#e8faf0; color:#0a7a45; }
+.conn-pill .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+.conn-pill.connected .dot { animation:blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* Signal bars — the secret peek trigger */
 .nav-signal {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 8px;
-  user-select: none;
-  touch-action: manipulation;
-  position: relative;
+  display:flex; align-items:flex-end; gap:3px;
+  cursor:pointer; padding:8px; border-radius:8px;
+  user-select:none; touch-action:manipulation;
 }
-.nav-signal .bar { width: 4px; background: var(--border); border-radius: 2px; transition: background 0.3s; }
-.nav-signal .bar.lit { background: var(--accent); }
-.nav-signal .bar:nth-child(1) { height: 7px; }
-.nav-signal .bar:nth-child(2) { height: 12px; }
-.nav-signal .bar:nth-child(3) { height: 17px; }
+.nav-signal .bar { width:4px; background:var(--border); border-radius:2px; }
+.nav-signal .bar.lit { background:var(--accent); }
+.nav-signal .bar:nth-child(1){height:7px}
+.nav-signal .bar:nth-child(2){height:12px}
+.nav-signal .bar:nth-child(3){height:17px}
 
 /* SCREENS */
-.screen { display:none; flex-direction:column; height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch; }
-.screen.active { display:flex; animation: fadeIn 0.3s ease; }
-@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.screen { display:none; flex-direction:column; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.screen.active { display:flex; animation:fadeUp .3s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 
 /* HOME */
-.home-hero { padding: 28px 20px 18px; text-align: center; }
-.home-title { font-size: 30px; font-weight: 800; color: var(--text); line-height:1.15; letter-spacing:-0.5px; }
-.home-title span { color: var(--accent); }
-.home-sub { font-size: 15px; color: var(--muted); margin-top: 6px; }
+.home-hero { padding:28px 20px 18px; text-align:center; }
+.home-title { font-size:30px; font-weight:800; line-height:1.15; letter-spacing:-.5px; }
+.home-title span { color:var(--accent); }
+.home-sub { font-size:15px; color:var(--muted); margin-top:6px; }
 
 .code-card {
-  margin: 0 16px 14px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 20px;
-  box-shadow: var(--shadow);
+  margin:0 16px 14px; background:var(--card); border:1px solid var(--border);
+  border-radius:var(--radius); padding:16px 20px; box-shadow:var(--shadow);
 }
-.code-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 8px; }
-.code-row { display: flex; align-items: center; justify-content: space-between; }
-.code-value { font-size: 28px; font-weight: 800; letter-spacing: 5px; color: var(--text); font-variant-numeric: tabular-nums; }
-.code-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: blink 2s infinite; }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.code-label { font-size:11px; font-weight:600; color:var(--muted); letter-spacing:1.2px; text-transform:uppercase; margin-bottom:8px; }
+.code-row { display:flex; align-items:center; justify-content:space-between; }
+.code-value { font-size:28px; font-weight:800; letter-spacing:5px; color:var(--text); }
+.code-status { font-size:12px; color:var(--muted); }
 
-.connect-btn {
-  display: block;
-  width: calc(100% - 32px);
-  margin: 0 16px 20px;
-  padding: 15px;
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: var(--radius);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: center;
-  touch-action: manipulation;
-  font-family: inherit;
+.divider-or {
+  display:flex; align-items:center; gap:10px;
+  padding:0 16px 16px; color:var(--muted); font-size:13px;
 }
+.divider-or::before,.divider-or::after { content:''; flex:1; height:1px; background:var(--border); }
 
-.section-label { padding: 0 20px 10px; font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1.2px; text-transform: uppercase; }
-.cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px 36px; }
+.connect-row { display:flex; gap:10px; padding:0 16px 20px; }
+.connect-input {
+  flex:1; padding:13px 16px; border:1.5px solid var(--border); border-radius:var(--radius);
+  font-size:18px; font-weight:700; letter-spacing:4px; text-align:center;
+  font-family:inherit; background:var(--card); color:var(--text); outline:none;
+}
+.connect-input:focus { border-color:var(--accent); }
+.connect-input::placeholder { font-size:14px; letter-spacing:1px; font-weight:400; color:var(--muted); }
+.join-btn {
+  padding:13px 20px; background:var(--accent); color:white; border:none;
+  border-radius:var(--radius); font-size:14px; font-weight:600;
+  cursor:pointer; touch-action:manipulation; font-family:inherit; white-space:nowrap;
+}
+.join-btn:disabled { opacity:.5; }
+
+.section-label { padding:0 20px 10px; font-size:11px; font-weight:700; color:var(--muted); letter-spacing:1.2px; text-transform:uppercase; }
+.cat-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:0 16px 36px; }
 .cat-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 22px 16px;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: transform 0.15s;
-  box-shadow: var(--shadow);
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:22px 16px; cursor:pointer; touch-action:manipulation;
+  transition:transform .15s; box-shadow:var(--shadow);
 }
-.cat-card:active { transform: scale(0.97); }
-.cat-icon { font-size: 34px; margin-bottom: 10px; display: block; }
-.cat-name { font-size: 13px; font-weight: 700; color: var(--text); }
-.cat-desc { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.cat-card:active { transform:scale(.97); }
+.cat-icon { font-size:34px; margin-bottom:10px; display:block; }
+.cat-name { font-size:13px; font-weight:700; }
+.cat-desc { font-size:11px; color:var(--muted); margin-top:3px; }
+
+/* WAITING SCREEN */
+.center-wrap { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; text-align:center; }
+.big-code { font-size:52px; font-weight:900; letter-spacing:8px; color:var(--text); margin:20px 0 10px; }
+.wait-sub { font-size:14px; color:var(--muted); line-height:1.7; max-width:260px; }
+.spinner { width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; margin:24px auto 0; }
+@keyframes spin { to{transform:rotate(360deg)} }
 
 /* SENDER */
-.screen-header { padding: 20px 20px 6px; text-align: center; }
-.screen-title { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
-.screen-sub { font-size: 14px; color: var(--muted); line-height: 1.5; }
+.screen-header { padding:20px 20px 6px; text-align:center; }
+.screen-title { font-size:22px; font-weight:800; margin-bottom:4px; }
+.screen-sub { font-size:14px; color:var(--muted); line-height:1.5; }
 .role-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--accent-light); color: var(--accent);
-  font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
-  padding: 5px 12px; border-radius: 100px; margin-bottom: 14px;
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:11px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
+  padding:5px 12px; border-radius:100px; margin-bottom:14px;
+  background:var(--accent-light); color:var(--accent);
 }
-.role-badge::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--accent); }
-.role-badge.receiver { background:#fff8e1; color:#b36b00; }
-.role-badge.receiver::before { background:#b36b00; }
+.role-badge::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+.role-badge.r { background:#fff8e1; color:#b36b00; }
 
 .pick-grid { display:grid; gap:12px; padding:16px 16px 36px; }
 .pick-grid.g2 { grid-template-columns:1fr 1fr; }
 .pick-grid.g3 { grid-template-columns:1fr 1fr 1fr; }
-
 .pick-btn {
-  background: var(--card);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px 10px;
-  cursor: pointer;
-  touch-action: manipulation;
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  transition: transform 0.15s, border-color 0.2s, background 0.2s;
-  box-shadow: var(--shadow);
-  font-family: inherit;
+  background:var(--card); border:1.5px solid var(--border); border-radius:var(--radius);
+  padding:20px 10px; cursor:pointer; touch-action:manipulation;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  transition:transform .15s,border-color .15s; box-shadow:var(--shadow); font-family:inherit;
 }
-.pick-btn:active { transform: scale(0.95); border-color: var(--accent); }
-.pick-btn.selected { border-color: var(--accent); background: var(--accent-light); }
-.pick-icon { font-size: 34px; line-height: 1; }
-.pick-label { font-size: 12px; font-weight: 600; color: var(--muted); }
-.pick-num { font-size: 36px; font-weight: 900; color: var(--text); line-height:1; }
+.pick-btn:active { transform:scale(.95); border-color:var(--accent); }
+.pick-btn.selected { border-color:var(--accent); background:var(--accent-light); }
+.pick-icon { font-size:34px; line-height:1; }
+.pick-num { font-size:36px; font-weight:900; color:var(--text); line-height:1; }
+.pick-label { font-size:12px; font-weight:600; color:var(--muted); }
 
 /* SENDING */
-.sending-wrap { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; }
 .pulse-ring {
-  width: 96px; height: 96px; border-radius: 50%;
-  background: var(--accent-light);
-  display:flex;align-items:center;justify-content:center;
-  font-size: 40px; margin-bottom: 28px; position: relative;
+  width:96px; height:96px; border-radius:50%; background:var(--accent-light);
+  display:flex; align-items:center; justify-content:center; font-size:40px;
+  margin-bottom:28px; position:relative;
 }
-.pulse-ring::after {
-  content:''; position:absolute; inset:-8px; border-radius:50%;
-  border:2px solid var(--accent); opacity:0.35;
-  animation: ripple 1.6s ease-out infinite;
+.pulse-ring::after,.pulse-ring::before {
+  content:''; position:absolute; border-radius:50%; border:2px solid var(--accent);
+  animation:ripple 1.6s ease-out infinite;
 }
-.pulse-ring::before {
-  content:''; position:absolute; inset:-18px; border-radius:50%;
-  border:2px solid var(--accent); opacity:0.15;
-  animation: ripple 1.6s ease-out infinite 0.45s;
-}
-@keyframes ripple { 0%{transform:scale(0.85);opacity:0.5} 100%{transform:scale(1.2);opacity:0} }
-.sending-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
-.sending-sub { font-size: 14px; color: var(--muted); text-align:center; line-height:1.6; max-width: 240px; }
-.dots { display:flex;gap:6px;margin-top:22px; }
-.dots span { width:7px;height:7px;border-radius:50%;background:var(--accent);animation:dot 1.4s infinite ease-in-out; }
+.pulse-ring::after { inset:-8px; opacity:.35; }
+.pulse-ring::before { inset:-18px; opacity:.15; animation-delay:.45s; }
+@keyframes ripple { 0%{transform:scale(.85);opacity:.5} 100%{transform:scale(1.2);opacity:0} }
+.dots { display:flex; gap:6px; margin-top:22px; }
+.dots span { width:7px; height:7px; border-radius:50%; background:var(--accent); animation:dot 1.4s infinite ease-in-out; }
 .dots span:nth-child(2){animation-delay:.2s} .dots span:nth-child(3){animation-delay:.4s}
-@keyframes dot { 0%,80%,100%{transform:scale(0.3);opacity:0.3} 40%{transform:scale(1);opacity:1} }
+@keyframes dot { 0%,80%,100%{transform:scale(.3);opacity:.3} 40%{transform:scale(1);opacity:1} }
 
 /* RECEIVER */
 .recv-top { padding:16px 16px 0; }
-.progress-wrap { height:5px;background:var(--border);border-radius:5px;overflow:hidden; margin-bottom: 14px; }
-.progress-fill { height:100%;background:var(--accent);border-radius:5px; width:0%; transition: width 0.1s linear; }
-
+.progress-wrap { height:5px; background:var(--border); border-radius:5px; overflow:hidden; margin-bottom:14px; }
+.progress-fill { height:100%; background:var(--accent); border-radius:5px; width:0%; }
 .focus-card {
-  background: linear-gradient(135deg,#5b5ef4,#8183f7);
-  border-radius: var(--radius); padding:18px; color:white;
-  display:flex;align-items:center;gap:14px;
-  margin: 0 16px 4px;
+  background:linear-gradient(135deg,#5b5ef4,#8183f7); border-radius:var(--radius);
+  padding:18px; color:white; display:flex; align-items:center; gap:14px; margin:0 16px 4px;
 }
 .focus-card .fi { font-size:26px; }
-.focus-card .ft1 { font-size:12px;opacity:0.8;margin-bottom:2px; }
-.focus-card .ft2 { font-size:15px;font-weight:700; }
-.guess-label { padding:14px 20px 8px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.5px; }
+.focus-card .ft1 { font-size:12px; opacity:.8; margin-bottom:2px; }
+.focus-card .ft2 { font-size:15px; font-weight:700; }
+.guess-label { padding:14px 20px 8px; font-size:12px; font-weight:700; color:var(--muted); }
 
 /* RESULT */
-.result-wrap { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px; }
-.result-check {
-  width:88px;height:88px;border-radius:50%;background:#e8faf0;
-  display:flex;align-items:center;justify-content:center;font-size:40px;
-  margin-bottom:20px;animation:popIn .5s cubic-bezier(.34,1.56,.64,1) both;
-}
-@keyframes popIn { from{transform:scale(0.2);opacity:0} to{transform:scale(1);opacity:1} }
-.result-title { font-size:28px;font-weight:800;margin-bottom:6px; }
-.result-sub { font-size:14px;color:var(--muted);text-align:center;line-height:1.6; }
-.result-card {
-  margin-top:24px;background:var(--card);border:1px solid var(--border);
-  border-radius:var(--radius);padding:20px 28px;
-  display:flex;align-items:center;gap:18px;box-shadow:var(--shadow);
-  animation:popIn .5s .15s cubic-bezier(.34,1.56,.64,1) both;
-}
-.rc-icon { font-size:52px;line-height:1; }
-.rc-name { font-size:24px;font-weight:800; }
-.rc-meta { font-size:12px;color:var(--muted);margin-top:2px; }
-.again-btn {
-  margin-top:28px;padding:14px 44px;background:var(--accent);color:white;
-  border:none;border-radius:var(--radius);font-size:15px;font-weight:600;
-  cursor:pointer;touch-action:manipulation;font-family:inherit;
-}
+.result-check { width:88px; height:88px; border-radius:50%; background:#e8faf0; display:flex; align-items:center; justify-content:center; font-size:40px; margin-bottom:20px; animation:popIn .5s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes popIn { from{transform:scale(.2);opacity:0} to{transform:scale(1);opacity:1} }
+.result-title { font-size:28px; font-weight:800; margin-bottom:6px; }
+.result-sub { font-size:14px; color:var(--muted); text-align:center; line-height:1.6; }
+.result-card { margin-top:24px; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px 28px; display:flex; align-items:center; gap:18px; box-shadow:var(--shadow); animation:popIn .5s .15s cubic-bezier(.34,1.56,.64,1) both; }
+.rc-icon { font-size:52px; line-height:1; }
+.rc-name { font-size:24px; font-weight:800; }
+.rc-meta { font-size:12px; color:var(--muted); margin-top:2px; }
+.again-btn { margin-top:28px; padding:14px 44px; background:var(--accent); color:white; border:none; border-radius:var(--radius); font-size:15px; font-weight:600; cursor:pointer; touch-action:manipulation; font-family:inherit; }
 
-/* PEEK OVERLAY */
-.peek-overlay {
-  position:fixed;inset:0;background:rgba(15,15,30,0.93);
-  display:flex;align-items:center;justify-content:center;
-  z-index:999;pointer-events:none;animation:fadeIn .2s ease;
-}
-.peek-card {
-  background:var(--card);border-radius:24px;padding:32px 44px;
-  text-align:center;min-width:230px;box-shadow:0 20px 60px rgba(0,0,0,0.4);
-}
-.peek-tag { font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:14px; }
-.peek-icon { font-size:72px;line-height:1;margin-bottom:10px; }
-.peek-name { font-size:26px;font-weight:800;color:var(--text); }
-.peek-bar { height:3px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:22px; }
-.peek-bar-fill { height:100%;background:var(--accent);animation:drain 1s linear forwards; }
+/* ERROR TOAST */
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a1a2e; color:white; padding:12px 20px; border-radius:100px; font-size:13px; font-weight:500; z-index:300; opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap; }
+.toast.show { opacity:1; }
+
+/* PEEK */
+.peek-overlay { position:fixed; inset:0; background:rgba(15,15,30,.93); display:flex; align-items:center; justify-content:center; z-index:999; pointer-events:none; animation:fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.peek-card { background:var(--card); border-radius:24px; padding:32px 44px; text-align:center; min-width:230px; box-shadow:0 20px 60px rgba(0,0,0,.4); }
+.peek-tag { font-size:10px; font-weight:700; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:14px; }
+.peek-icon { font-size:72px; line-height:1; margin-bottom:10px; }
+.peek-name { font-size:26px; font-weight:800; }
+.peek-bar { height:3px; background:var(--border); border-radius:3px; overflow:hidden; margin-top:22px; }
+.peek-bar-fill { height:100%; background:var(--accent); animation:drain 1s linear forwards; }
 @keyframes drain { from{width:100%} to{width:0%} }
 
 /* HOLD RING */
-.hold-ring {
-  position:fixed;top:8px;right:8px;width:48px;height:48px;
-  pointer-events:none;z-index:500;display:none;
-}
-.hold-ring circle {
-  fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;
-  stroke-dasharray:120;stroke-dashoffset:120;
-  transform-origin:center;transform:rotate(-90deg);
-  transition:stroke-dashoffset .05s linear;
-}
+.hold-ring { position:fixed; top:8px; right:8px; width:48px; height:48px; pointer-events:none; z-index:500; display:none; }
+.hold-ring circle { fill:none; stroke:var(--accent); stroke-width:2.5; stroke-linecap:round; stroke-dasharray:120; stroke-dashoffset:120; transform-origin:center; transform:rotate(-90deg); transition:stroke-dashoffset .05s linear; }
 </style>
 </head>
 <body>
 <div id="app">
 
+  <!-- NAV -->
   <div class="nav">
     <div class="nav-logo">Simple<span>Telepathy</span></div>
-    <!-- This looks like a signal strength indicator. Long-press it to peek. -->
-    <div class="nav-signal" id="nav-signal"
-      onmousedown="startHold()" onmouseup="endHold()" onmouseleave="endHold()"
-      ontouchstart="startHold(event)" ontouchend="endHold()" ontouchcancel="endHold()">
-      <div class="bar lit" id="b1"></div>
-      <div class="bar lit" id="b2"></div>
-      <div class="bar" id="b3"></div>
+    <div class="nav-right">
+      <div class="conn-pill offline" id="conn-pill"><span class="dot"></span><span id="conn-label">Offline</span></div>
+      <!-- Long-press this to peek (only works on receiver screen) -->
+      <div class="nav-signal" id="nav-signal"
+        onmousedown="startHold()" onmouseup="endHold()" onmouseleave="endHold()"
+        ontouchstart="startHold(event)" ontouchend="endHold()" ontouchcancel="endHold()">
+        <div class="bar" id="b1"></div>
+        <div class="bar" id="b2"></div>
+        <div class="bar" id="b3"></div>
+      </div>
     </div>
   </div>
 
-  <!-- HOME -->
+  <!-- HOME (receiver side — you are the magician) -->
   <div class="screen active" id="s-home">
     <div class="home-hero">
       <h1 class="home-title">Simple<br><span>Telepathy</span> Test</h1>
@@ -266,37 +225,47 @@ html,body { height:100%; background:var(--bg); font-family:-apple-system,BlinkMa
     <div class="code-card">
       <div class="code-label">My Connect Code</div>
       <div class="code-row">
-        <div class="code-value" id="connect-code">——</div>
-        <div class="code-dot"></div>
+        <div class="code-value" id="connect-code">····</div>
+        <div class="code-status" id="code-status">Generating…</div>
       </div>
     </div>
-    <button class="connect-btn">Connect With Another Device</button>
+    <div class="divider-or">or connect to another device</div>
+    <div class="connect-row">
+      <input class="connect-input" id="code-input" type="tel" inputmode="numeric" maxlength="4" placeholder="Enter code">
+      <button class="join-btn" id="join-btn" onclick="joinAsReceiver()" disabled>Join</button>
+    </div>
     <div class="section-label">Choose a category</div>
     <div class="cat-grid">
       <div class="cat-card" onclick="startCat('colors')">
         <span class="cat-icon">🎨</span>
-        <div class="cat-name">COLORS</div>
-        <div class="cat-desc">Pick the right color</div>
+        <div class="cat-name">COLORS</div><div class="cat-desc">Pick the right color</div>
       </div>
       <div class="cat-card" onclick="startCat('animals')">
         <span class="cat-icon">🦁</span>
-        <div class="cat-name">ANIMALS</div>
-        <div class="cat-desc">Pick the right animal</div>
+        <div class="cat-name">ANIMALS</div><div class="cat-desc">Pick the right animal</div>
       </div>
       <div class="cat-card" onclick="startCat('numbers')">
         <span class="cat-icon">42</span>
-        <div class="cat-name">NUMBERS</div>
-        <div class="cat-desc">Guess the secret number</div>
+        <div class="cat-name">NUMBERS</div><div class="cat-desc">Guess the secret number</div>
       </div>
       <div class="cat-card" onclick="startCat('suits')">
         <span class="cat-icon">♠</span>
-        <div class="cat-name">CARD SUITS</div>
-        <div class="cat-desc">Pick the right suit</div>
+        <div class="cat-name">CARD SUITS</div><div class="cat-desc">Pick the right suit</div>
       </div>
     </div>
   </div>
 
-  <!-- SENDER (volunteer picks) -->
+  <!-- WAITING FOR SENDER -->
+  <div class="screen" id="s-waiting">
+    <div class="center-wrap">
+      <p style="font-size:13px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600">Your connect code</p>
+      <div class="big-code" id="big-code">····</div>
+      <p class="wait-sub">Share this code with the sender. Waiting for them to connect…</p>
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- SENDER SCREEN (volunteer — entered a code) -->
   <div class="screen" id="s-sender">
     <div class="screen-header">
       <div class="role-badge">Sender</div>
@@ -308,26 +277,23 @@ html,body { height:100%; background:var(--bg); font-family:-apple-system,BlinkMa
 
   <!-- SENDING ANIMATION -->
   <div class="screen" id="s-sending">
-    <div class="sending-wrap">
+    <div class="center-wrap">
       <div class="pulse-ring" id="sending-emoji">🧠</div>
-      <div class="sending-title">Transmitting…</div>
-      <div class="sending-sub">Sending your thought to the receiver. Please stay focused.</div>
+      <div style="font-size:22px;font-weight:700;margin-bottom:8px">Transmitting…</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;max-width:240px">Sending your thought to the receiver. Please stay focused.</div>
       <div class="dots"><span></span><span></span><span></span></div>
     </div>
   </div>
 
-  <!-- RECEIVER (magician guesses) -->
+  <!-- RECEIVER SCREEN (magician guesses) -->
   <div class="screen" id="s-receiver">
     <div class="recv-top">
-      <div class="role-badge receiver" style="display:inline-flex;margin-bottom:12px;">Receiver</div>
+      <div class="role-badge r" style="display:inline-flex;margin-bottom:12px">Receiver</div>
       <div class="progress-wrap"><div class="progress-fill" id="prog"></div></div>
     </div>
     <div class="focus-card">
       <div class="fi">📡</div>
-      <div>
-        <div class="ft1">Signal received — reading now…</div>
-        <div class="ft2">Select what you sense</div>
-      </div>
+      <div><div class="ft1">Signal received — reading now…</div><div class="ft2">Select what you sense</div></div>
     </div>
     <div class="guess-label">What did the sender choose?</div>
     <div class="pick-grid g2" id="guess-grid"></div>
@@ -335,16 +301,13 @@ html,body { height:100%; background:var(--bg); font-family:-apple-system,BlinkMa
 
   <!-- RESULT -->
   <div class="screen" id="s-result">
-    <div class="result-wrap">
+    <div class="center-wrap">
       <div class="result-check">✓</div>
       <div class="result-title">Correct!</div>
       <div class="result-sub">The receiver successfully read<br>the sender's thought.</div>
       <div class="result-card">
         <div class="rc-icon" id="r-icon"></div>
-        <div>
-          <div class="rc-name" id="r-name"></div>
-          <div class="rc-meta">Sender &amp; receiver matched</div>
-        </div>
+        <div><div class="rc-name" id="r-name"></div><div class="rc-meta">Sender &amp; receiver matched</div></div>
       </div>
       <button class="again-btn" onclick="restart()">Try Again</button>
     </div>
@@ -352,7 +315,7 @@ html,body { height:100%; background:var(--bg); font-family:-apple-system,BlinkMa
 
 </div>
 
-<!-- PEEK OVERLAY (hidden) -->
+<!-- PEEK OVERLAY -->
 <div class="peek-overlay" id="peek" style="display:none">
   <div class="peek-card">
     <div class="peek-tag">They chose</div>
@@ -367,147 +330,219 @@ html,body { height:100%; background:var(--bg); font-family:-apple-system,BlinkMa
   <circle cx="24" cy="24" r="19" id="hold-circle"/>
 </svg>
 
+<div class="toast" id="toast"></div>
+
 <script>
 const CATS = {
-  colors: {
-    title:'Pick a color', cols:'g2',
-    items:[
-      {e:'🔴',l:'Red'},{e:'🔵',l:'Blue'},{e:'🟡',l:'Yellow'},
-      {e:'🟢',l:'Green'},{e:'🟣',l:'Purple'},{e:'🟠',l:'Orange'}
-    ]
-  },
-  animals: {
-    title:'Pick an animal', cols:'g2',
-    items:[
-      {e:'🦁',l:'Lion'},{e:'🐺',l:'Wolf'},{e:'🦅',l:'Eagle'},
-      {e:'🦊',l:'Fox'},{e:'🐬',l:'Dolphin'},{e:'🦉',l:'Owl'}
-    ]
-  },
-  numbers: {
-    title:'Pick a number', cols:'g3',
-    items:[
-      {e:'1',l:'1'},{e:'2',l:'2'},{e:'3',l:'3'},
-      {e:'4',l:'4'},{e:'5',l:'5'},{e:'6',l:'6'},
-      {e:'7',l:'7'},{e:'8',l:'8'},{e:'9',l:'9'}
-    ]
-  },
-  suits: {
-    title:'Pick a card suit', cols:'g2',
-    items:[{e:'♠',l:'Spades'},{e:'♥',l:'Hearts'},{e:'♦',l:'Diamonds'},{e:'♣',l:'Clubs'}]
-  }
+  colors:  { title:'Pick a color',     cols:'g2', items:[{e:'🔴',l:'Red'},{e:'🔵',l:'Blue'},{e:'🟡',l:'Yellow'},{e:'🟢',l:'Green'},{e:'🟣',l:'Purple'},{e:'🟠',l:'Orange'}] },
+  animals: { title:'Pick an animal',   cols:'g2', items:[{e:'🦁',l:'Lion'},{e:'🐺',l:'Wolf'},{e:'🦅',l:'Eagle'},{e:'🦊',l:'Fox'},{e:'🐬',l:'Dolphin'},{e:'🦉',l:'Owl'}] },
+  numbers: { title:'Pick a number',    cols:'g3', items:[{e:'1',l:'1'},{e:'2',l:'2'},{e:'3',l:'3'},{e:'4',l:'4'},{e:'5',l:'5'},{e:'6',l:'6'},{e:'7',l:'7'},{e:'8',l:'8'},{e:'9',l:'9'}] },
+  suits:   { title:'Pick a card suit', cols:'g2', items:[{e:'♠',l:'Spades'},{e:'♥',l:'Hearts'},{e:'♦',l:'Diamonds'},{e:'♣',l:'Clubs'}] }
 };
 
-let cat=null, chosen=null, holdTimer=null, holdProg=0, progTimer=null;
-const HOLD=500;
+let myPeer = null, senderConn = null, receiverConn = null;
+let cat = null, chosen = null, myRole = null; // 'sender' | 'receiver'
+let holdTimer = null, holdProg = 0;
+const HOLD = 500;
+let progTimer = null;
 
-document.getElementById('connect-code').textContent = Math.floor(1000+Math.random()*9000);
+// ── PEER SETUP ──────────────────────────────────────────────────────────────
+function initPeer() {
+  const code = Math.floor(1000 + Math.random() * 9000).toString();
+  const peerId = 'stt-' + code;
+  myPeer = new Peer(peerId);
 
-function show(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  const el = document.getElementById(id);
-  el.classList.add('active');
-  el.scrollTop=0;
+  myPeer.on('open', () => {
+    document.getElementById('connect-code').textContent = code;
+    document.getElementById('code-status').textContent = 'Ready';
+    setSignal(2);
+    setConnPill('waiting', 'Waiting');
+  });
+
+  myPeer.on('connection', (conn) => {
+    // Someone connected to us — we are the receiver (magician)
+    myRole = 'receiver';
+    senderConn = conn;
+    setConnPill('connected', 'Connected');
+    setSignal(3);
+    conn.on('data', (data) => {
+      // Sender picked something
+      cat = data.cat;
+      chosen = data.item;
+      buildGrid('guess-grid', CATS[cat].items, CATS[cat].cols, 'receiverGuess');
+      animateProgress();
+      show('s-receiver');
+    });
+    conn.on('close', () => { setConnPill('offline','Disconnected'); setSignal(0); });
+    show('s-waiting'); // stay here until they pick
+    document.getElementById('big-code').textContent = code;
+  });
+
+  myPeer.on('error', (err) => {
+    if (err.type === 'unavailable-id') {
+      // Code taken, regenerate
+      myPeer.destroy(); myPeer = null; initPeer();
+    } else {
+      showToast('Connection error. Check your network.');
+    }
+  });
 }
 
-function buildGrid(gridId, items, cols, fn){
-  const g=document.getElementById(gridId);
-  g.className='pick-grid '+cols;
-  g.innerHTML=items.map((it,i)=>{
-    const isNum=/^\d+$/.test(it.e);
-    const icon = isNum
-      ? `<div class="pick-num">${it.e}</div>`
-      : `<div class="pick-icon">${it.e}</div>`;
+// Join as sender by entering receiver's code
+function joinAsReceiver() {
+  const input = document.getElementById('code-input').value.trim();
+  if (input.length !== 4) { showToast('Enter a 4-digit code'); return; }
+  const peerId = 'stt-' + input;
+  setConnPill('waiting', 'Connecting…');
+  const conn = myPeer.connect(peerId, { reliable: true });
+  receiverConn = conn;
+  conn.on('open', () => {
+    myRole = 'sender';
+    setConnPill('connected', 'Connected');
+    setSignal(3);
+    // Show category selection on sender device
+    show('s-home'); // reset to home to pick category as sender
+  });
+  conn.on('error', () => { showToast('Could not connect. Check the code.'); setConnPill('offline','Offline'); });
+}
+
+// ── CATEGORY / PICK ─────────────────────────────────────────────────────────
+function startCat(c) {
+  cat = c;
+  const d = CATS[c];
+  document.getElementById('sender-title').textContent = d.title;
+  buildGrid('pick-grid', d.items, d.cols, 'senderPick');
+  show('s-sender');
+}
+
+function buildGrid(gridId, items, cols, fn) {
+  const g = document.getElementById(gridId);
+  g.className = 'pick-grid ' + cols;
+  g.innerHTML = items.map((it, i) => {
+    const isNum = /^\d+$/.test(it.e);
+    const icon = isNum ? `<div class="pick-num">${it.e}</div>` : `<div class="pick-icon">${it.e}</div>`;
     return `<button class="pick-btn" onclick="${fn}(${i})">${icon}<div class="pick-label">${it.l}</div></button>`;
   }).join('');
 }
 
-function startCat(c){
-  cat=c;
-  const d=CATS[c];
-  document.getElementById('sender-title').textContent=d.title;
-  buildGrid('pick-grid',d.items,d.cols,'senderPick');
-  buildGrid('guess-grid',d.items,d.cols,'receiverGuess');
-  show('s-sender');
-}
+function senderPick(i) {
+  const item = CATS[cat].items[i];
+  chosen = item;
 
-function senderPick(i){
-  chosen=CATS[cat].items[i];
-  document.getElementById('sending-emoji').textContent=chosen.e;
-  // visual feedback
-  document.querySelectorAll('#pick-grid .pick-btn').forEach((b,idx)=>{
-    b.style.opacity=idx===i?'1':'0.3';
-    if(idx===i) b.classList.add('selected');
+  // Flash selection
+  document.querySelectorAll('#pick-grid .pick-btn').forEach((b, idx) => {
+    b.style.opacity = idx === i ? '1' : '0.3';
+    if (idx === i) b.classList.add('selected');
   });
-  setTimeout(()=>{ show('s-sending'); startProgress(); }, 350);
-  setTimeout(()=>{ show('s-receiver'); }, 2800);
+
+  document.getElementById('sending-emoji').textContent = item.e;
+  setTimeout(() => show('s-sending'), 350);
+
+  // Send to receiver if connected
+  if (receiverConn && receiverConn.open) {
+    receiverConn.send({ cat, item });
+    setTimeout(() => show('s-sending'), 350);
+    // Sender stays on sending screen — trick is done on receiver device
+  } else {
+    // Single device fallback: after delay, go to receiver screen
+    buildGrid('guess-grid', CATS[cat].items, CATS[cat].cols, 'receiverGuess');
+    setTimeout(() => { animateProgress(); show('s-receiver'); }, 2400);
+  }
 }
 
-function startProgress(){
-  clearInterval(progTimer);
-  const bar=document.getElementById('prog');
-  let w=0;
-  bar.style.width='0%';
-  progTimer=setInterval(()=>{
-    w+=1; bar.style.width=w+'%';
-    if(w>=100) clearInterval(progTimer);
-  }, 30);
-}
-
-function receiverGuess(i){
-  const g=CATS[cat].items[i];
-  document.getElementById('r-icon').textContent=g.e;
-  document.getElementById('r-name').textContent=g.l;
+function receiverGuess(i) {
+  const g = CATS[cat].items[i];
+  document.getElementById('r-icon').textContent = g.e;
+  document.getElementById('r-name').textContent = g.l;
   show('s-result');
 }
 
-function restart(){
-  cat=null; chosen=null;
+function animateProgress() {
+  clearInterval(progTimer);
+  const bar = document.getElementById('prog');
+  let w = 0;
+  bar.style.width = '0%';
+  progTimer = setInterval(() => {
+    w += 1.2; bar.style.width = Math.min(w, 100) + '%';
+    if (w >= 100) clearInterval(progTimer);
+  }, 30);
+}
+
+function restart() {
+  cat = null; chosen = null;
   show('s-home');
 }
 
-/* ── SECRET PEEK: long-press the signal bars ── */
-function startHold(e){
-  if(e) e.preventDefault();
-  holdProg=0;
-  const ring=document.getElementById('hold-ring');
-  const circle=document.getElementById('hold-circle');
-  ring.style.display='block';
-  circle.style.strokeDashoffset='120';
-
-  holdTimer=setInterval(()=>{
-    holdProg+=50;
-    const pct=Math.min(holdProg/HOLD,1);
-    circle.style.strokeDashoffset=120*(1-pct);
-    if(holdProg>=HOLD){
-      clearInterval(holdTimer); holdTimer=null;
-      ring.style.display='none';
-      showPeek();
-    }
-  },50);
+// ── SECRET PEEK ─────────────────────────────────────────────────────────────
+function startHold(e) {
+  if (e) e.preventDefault();
+  holdProg = 0;
+  const ring = document.getElementById('hold-ring');
+  const circle = document.getElementById('hold-circle');
+  ring.style.display = 'block';
+  circle.style.strokeDashoffset = '120';
+  holdTimer = setInterval(() => {
+    holdProg += 25;
+    circle.style.strokeDashoffset = 120 * (1 - Math.min(holdProg / HOLD, 1));
+    if (holdProg >= HOLD) { clearInterval(holdTimer); holdTimer = null; ring.style.display = 'none'; showPeek(); }
+  }, 25);
 }
 
-function endHold(){
-  if(holdTimer){ clearInterval(holdTimer); holdTimer=null; }
-  holdProg=0;
-  document.getElementById('hold-circle').style.strokeDashoffset='120';
-  document.getElementById('hold-ring').style.display='none';
+function endHold() {
+  if (holdTimer) { clearInterval(holdTimer); holdTimer = null; }
+  holdProg = 0;
+  document.getElementById('hold-circle').style.strokeDashoffset = '120';
+  document.getElementById('hold-ring').style.display = 'none';
 }
 
-function showPeek(){
-  if(!chosen) return;
-  const overlay=document.getElementById('peek');
-  document.getElementById('p-icon').textContent=chosen.e;
-  document.getElementById('p-name').textContent=chosen.l;
-  // restart drain anim
-  const fill=document.getElementById('p-fill');
-  fill.style.animation='none'; void fill.offsetWidth;
-  fill.style.animation='drain 3s linear forwards';
-  overlay.style.display='flex';
-  setTimeout(()=>{ overlay.style.display='none'; },1000);
+function showPeek() {
+  if (!chosen) return;
+  const overlay = document.getElementById('peek');
+  document.getElementById('p-icon').textContent = chosen.e;
+  document.getElementById('p-name').textContent = chosen.l;
+  const fill = document.getElementById('p-fill');
+  fill.style.animation = 'none'; void fill.offsetWidth;
+  fill.style.animation = 'drain 1s linear forwards';
+  overlay.style.display = 'flex';
+  setTimeout(() => { overlay.style.display = 'none'; }, 1000);
 }
 
-/* Animate signal bar 3 to look like a live connection */
-setInterval(()=>{ document.getElementById('b3').classList.toggle('lit'); },1800);
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  el.scrollTop = 0;
+}
+
+function setConnPill(state, label) {
+  const pill = document.getElementById('conn-pill');
+  pill.className = 'conn-pill ' + state;
+  document.getElementById('conn-label').textContent = label;
+}
+
+function setSignal(n) {
+  ['b1','b2','b3'].forEach((id, i) => {
+    document.getElementById(id).classList.toggle('lit', i < n);
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Code input validation
+document.getElementById('code-input').addEventListener('input', function() {
+  document.getElementById('join-btn').disabled = this.value.length !== 4;
+});
+
+// Animate bar 3 to flicker when waiting
+setInterval(() => { if (!document.getElementById('b3').classList.contains('lit')) document.getElementById('b3').classList.toggle('dim'); }, 1800);
+
+// Start
+initPeer();
 </script>
 </body>
 </html>
