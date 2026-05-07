@@ -226,7 +226,7 @@ html,body { height:100%; background:var(--bg); font-family:-apple-system,BlinkMa
 .peek-icon { font-size:72px;line-height:1;margin-bottom:10px; }
 .peek-name { font-size:26px;font-weight:800;color:var(--text); }
 .peek-bar { height:3px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:22px; }
-.peek-bar-fill { height:100%;background:var(--accent);animation:drain 3s linear forwards; }
+.peek-bar-fill { height:100%;background:var(--accent);animation:drain 1s linear forwards; }
 @keyframes drain { from{width:100%} to{width:0%} }
 
 /* HOLD RING */
@@ -398,7 +398,7 @@ const CATS = {
 };
 
 let cat=null, chosen=null, holdTimer=null, holdProg=0, progTimer=null;
-const HOLD=1600;
+const HOLD=500;
 
 document.getElementById('connect-code').textContent = Math.floor(1000+Math.random()*9000);
 
@@ -503,7 +503,7 @@ function showPeek(){
   fill.style.animation='none'; void fill.offsetWidth;
   fill.style.animation='drain 3s linear forwards';
   overlay.style.display='flex';
-  setTimeout(()=>{ overlay.style.display='none'; },3100);
+  setTimeout(()=>{ overlay.style.display='none'; },1000);
 }
 
 /* Animate signal bar 3 to look like a live connection */
