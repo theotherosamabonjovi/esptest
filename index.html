@@ -285,6 +285,17 @@ html,body { height:100%; background:var(--bg); font-family:-apple-system,BlinkMa
     </div>
   </div>
 
+  <!-- SENT CONFIRMATION (sender device — two-device mode) -->
+  <div class="screen" id="s-sent">
+    <div class="center-wrap">
+      <div style="font-size:72px;margin-bottom:20px">🔒</div>
+      <div style="font-size:22px;font-weight:800;margin-bottom:8px">Thought Sent</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.7;max-width:260px;text-align:center">
+        Your choice has been transmitted.<br>Wait for the receiver to reveal their answer.
+      </div>
+    </div>
+  </div>
+
   <!-- RECEIVER SCREEN (magician guesses) -->
   <div class="screen" id="s-receiver">
     <div class="recv-top">
@@ -442,7 +453,7 @@ function senderPick(i) {
   if (receiverConn && receiverConn.open) {
     receiverConn.send({ cat, item });
     setTimeout(() => show('s-sending'), 350);
-    // Sender stays on sending screen — trick is done on receiver device
+    setTimeout(() => show('s-sent'), 2400);
   } else {
     // Single device fallback: after delay, go to receiver screen
     buildGrid('guess-grid', CATS[cat].items, CATS[cat].cols, 'receiverGuess');
